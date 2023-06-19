@@ -1,26 +1,22 @@
 # dnsseeder
+
 Go Language dns seeder for Networks that use Bitcoin technology such as the [Twister P2P network](http://twister.net.co/) and the Bitcoin networks.
 
 It is based on the original c++ seeders created for the Bitcoin network and copied to other similar networks.
 
 ## Features
 
-* Supports multiple networks. You can run multiple seeders off one ip address.
-* Uses Go Language so it can easily be compiled and run on multiple platforms.
-* Minimal resource requirements. Will easily seed multiple networks on a Raspberry Pi 1 Mobel B+
-* Restricts the number of addresses accepted from any one node.
-* Cycle through working nodes to keep the active list fresh
-* Reduces bandwidth usage on nodes if it has many working nodes already in the system.
-* Ability to generate and edit your own seeder config file to support new networks.
+- Supports multiple networks. You can run multiple seeders off one ip address.
+- Uses Go Language so it can easily be compiled and run on multiple platforms.
+- Minimal resource requirements. Will easily seed multiple networks on a Raspberry Pi 1 Mobel B+
+- Restricts the number of addresses accepted from any one node.
+- Cycle through working nodes to keep the active list fresh
+- Reduces bandwidth usage on nodes if it has many working nodes already in the system.
+- Ability to generate and edit your own seeder config file to support new networks.
 
 ### Planned features
 
-* Support remote crawlers. Run the DNS seeder on one system and the crawlers on a different system.
-
-
-Also see the associated utility to display information about [non-standard ip addresses](https://github.com/gombadi/nonstd/)
-
-
+- Support remote crawlers. Run the DNS seeder on one system and the crawlers on a different system.
 
 ## Installing
 
@@ -42,12 +38,12 @@ cd dnsseeder
 go install
 
 ```
-The binary will then be available in `${HOME}/go/bin`
 
+The binary will then be available in `${HOME}/go/bin`
 
 ## Usage
 
-First, choose one seed domain name per network that you want to seed, as well as one nameserver domain name.  These can be any domain that you control.  For this example, we'll use `btc.seed.example.com` as your seed domain name and `ns.seed.example.net` as your nameserver domain name.  For each network that you want to seed, set the `"DNSName"` JSON field in its config file to the seed domain name that you picked for that network, e.g. `"DNSName": "btc.seed.example.com",`.  Optionally, fill in any number of IP addresses of nodes running on that network into the `"InitialIP"` field, e.g. `"InitialIP": "127.0.0.1,1.2.3.4",`.
+First, choose one seed domain name per network that you want to seed, as well as one nameserver domain name. These can be any domain that you control. For this example, we'll use `btc.seed.example.com` as your seed domain name and `ns.seed.example.net` as your nameserver domain name. For each network that you want to seed, set the `"DNSName"` JSON field in its config file to the seed domain name that you picked for that network, e.g. `"DNSName": "btc.seed.example.com",`. Optionally, fill in any number of IP addresses of nodes running on that network into the `"InitialIP"` field, e.g. `"InitialIP": "127.0.0.1,1.2.3.4",`.
 
 Then, run the seeder:
 
@@ -92,11 +88,11 @@ ${HOME}/go/bin/dnsseeder -p <dns.port.to.listen.on> -v -w 8880 -netfile ${1} 2>&
 
 ```
 
-Once your seeder is running, set up an `A` or `AAAA` DNS record on your nameserver domain name, pointing to the public IP address of the machine running your seeder.  Then set up an `NS` DNS record on each seed domain name, pointing to your nameserver domain name.
+Once your seeder is running, set up an `A` or `AAAA` DNS record on your nameserver domain name, pointing to the public IP address of the machine running your seeder. Then set up an `NS` DNS record on each seed domain name, pointing to your nameserver domain name.
 
 ## RUNNING AS NON-ROOT
 
-Typically, you'll need root privileges to listen to port 53 (name service).  Some potential solutions:
+Typically, you'll need root privileges to listen to port 53 (name service). Some potential solutions:
 
 ### iptables
 
@@ -124,5 +120,3 @@ $ sudo setcap 'cap_net_bind_service=+ep' ${HOME}/go/bin/dnsseeder
 For the DNS library license see https://github.com/miekg/dns
 
 For the bitcoin library license see https://github.com/btcsuite/btcd
-
-

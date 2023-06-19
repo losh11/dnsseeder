@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"time"
 
 	"github.com/btcsuite/btcd/wire"
@@ -13,7 +12,6 @@ type node struct {
 	lastConnect  time.Time        // last time we sucessfully connected to this client
 	lastTry      time.Time        // last time we tried to connect to this client
 	crawlStart   time.Time        // time when we started the last crawl
-	nonstdIP     net.IP           // if not using the default port then this is the encoded ip containing the actual port
 	statusStr    string           // string with last error or OK details
 	strVersion   string           // remote client user agent
 	services     wire.ServiceFlag // remote client supported services
@@ -31,12 +29,8 @@ func (nd node) dns2str() string {
 	switch nd.dnsType {
 	case dnsV4Std:
 		return "v4 standard port"
-	case dnsV4Non:
-		return "v4 non-standard port"
 	case dnsV6Std:
 		return "v6 standard port"
-	case dnsV6Non:
-		return "v6 non-standard port"
 	default:
 		return "Unknown DNS Type"
 	}

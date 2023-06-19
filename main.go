@@ -19,7 +19,7 @@ import (
 type NodeCounts struct {
 	NdStatus  []uint32     // number of nodes at each of the 4 statuses - RG, CG, WG, NG
 	NdStarts  []uint32     // number of crawles started last startcrawlers run
-	DNSCounts []uint32     // number of dns requests for each dns type - dnsV4Std, dnsV4Non, dnsV6Std, dnsV6Non
+	DNSCounts []uint32     // number of dns requests for each dns type - dnsV4Std, dnsV6Std
 	mtx       sync.RWMutex // protect the structures
 }
 
@@ -170,21 +170,11 @@ func updateDNSCounts(name, qtype string) {
 	var ndType uint32
 	var counted bool
 
-	nonstd := strings.HasPrefix(name, "nonstd.")
-
 	switch qtype {
 	case "A":
-		if nonstd {
-			ndType = dnsV4Non
-		} else {
-			ndType = dnsV4Std
-		}
+		ndType = dnsV4Std
 	case "AAAA":
-		if nonstd {
-			ndType = dnsV6Non
-		} else {
-			ndType = dnsV6Std
-		}
+		ndType = dnsV6Std
 	default:
 		ndType = dnsInvalid
 	}
@@ -193,7 +183,7 @@ func updateDNSCounts(name, qtype string) {
 	for _, s := range config.seeders {
 		s.counts.mtx.Lock()
 
-		if name == s.dnsHost+"." || name == "nonstd."+s.dnsHost+"." {
+		if name == s.dnsHost+"." {
 			s.counts.DNSCounts[ndType]++
 			counted = true
 		}

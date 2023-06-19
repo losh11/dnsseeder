@@ -50,13 +50,11 @@ func dnsWebHandler(w http.ResponseWriter, r *http.Request) {
 	config.dnsmtx.RLock()
 	// if the dns map does not have a key for the request it will return an empty slice
 	v4std := config.dns[s.dnsHost+".A"]
-	v4non := config.dns["nonstd."+s.dnsHost+".A"]
 	v6std := config.dns[s.dnsHost+".AAAA"]
-	v6non := config.dns["nonstd."+s.dnsHost+".AAAA"]
 	config.dnsmtx.RUnlock()
 
-	var v4stdstr, v4nonstr []string
-	var v6stdstr, v6nonstr []string
+	var v4stdstr []string
+	var v6stdstr []string
 
 	if x := len(v4std); x > 0 {
 		v4stdstr = make([]string, x)
@@ -65,15 +63,6 @@ func dnsWebHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		v4stdstr = []string{"No records Available"}
-	}
-
-	if x := len(v4non); x > 0 {
-		v4nonstr = make([]string, x)
-		for k, v := range v4non {
-			v4nonstr[k] = v.String()
-		}
-	} else {
-		v4nonstr = []string{"No records Available"}
 	}
 
 	// ipv6
@@ -86,21 +75,11 @@ func dnsWebHandler(w http.ResponseWriter, r *http.Request) {
 		v6stdstr = []string{"No records Available"}
 	}
 
-	if x := len(v6non); x > 0 {
-		v6nonstr = make([]string, x)
-		for k, v := range v6non {
-			v6nonstr[k] = v.String()
-		}
-	} else {
-		v6nonstr = []string{"No records Available"}
-	}
-
 	t1 := `
 	<center>
 	<table border=1>
 	  <tr>
 	  <th>Standard Ports</th>
-	  <th>Non Standard Ports</th>
 	  </tr>
 	  <tr>
 	  <td>
@@ -137,11 +116,6 @@ func dnsWebHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, t3)
 
-	err = t.Execute(w, v4nonstr)
-	if err != nil {
-		log.Printf("error executing template v4 non %v\n", err)
-	}
-
 	fmt.Fprintf(w, t4)
 
 	// ipv6 records
@@ -155,11 +129,6 @@ func dnsWebHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintf(w, t3)
-
-	err = t.Execute(w, v6nonstr)
-	if err != nil {
-		log.Printf("error executing template v6 non %v\n", err)
-	}
 
 	fmt.Fprintf(w, t4)
 	writeFooter(w, r, st)
@@ -331,7 +300,6 @@ type webtemplate struct {
 	Strversion     string
 	Services       string
 	Lastblock      int32
-	Nonstdip       string
 }
 
 // nodeHandler displays details about one node
@@ -348,7 +316,6 @@ func nodeHandler(w http.ResponseWriter, r *http.Request) {
       <tr><td>IP Address</td><td>{{.IP}}</td></tr>
       <tr><td>Port</td><td>{{.Port}}</td></tr>
       <tr><td>DNS Type</td><td>{{.Dnstype}}</td></tr>
-      <tr><td>Non Standard IP</td><td>{{.Nonstdip}}</td></tr>
       <tr><td>Last Connect</td><td>{{.Lastconnect}}<br>{{.Lastconnectago}} ago</td></tr>
       <tr><td>Last Connect Status</td><td>{{.Statusstr}}</td></tr>
       <tr><td>Last Try</td><td>{{.Lasttry}}<br>{{.Lasttryago}} ago</td></tr>
@@ -377,7 +344,7 @@ func nodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	k := r.FormValue("nd")
 	writeHeader(w, r)
-	if _, ok := s.theList[k]; ok == false {
+	if _, ok := s.theList[k]; !ok {
 		fmt.Fprintf(w, "Sorry there is no Node with those details\n")
 	} else {
 
@@ -386,7 +353,6 @@ func nodeHandler(w http.ResponseWriter, r *http.Request) {
 			IP:             nd.na.IP.String(),
 			Port:           nd.na.Port,
 			Dnstype:        nd.dns2str(),
-			Nonstdip:       nd.nonstdIP.String(),
 			Statusstr:      nd.statusStr,
 			Lastconnect:    nd.lastConnect.String(),
 			Lastconnectago: time.Since(nd.lastConnect).String(),
@@ -434,9 +400,7 @@ func summaryHandler(w http.ResponseWriter, r *http.Request) {
 		NGS      uint32
 		Total    uint32
 		V4Std    uint32
-		V4Non    uint32
 		V6Std    uint32
-		V6Non    uint32
 		DNSTotal uint32
 	}
 
@@ -460,10 +424,8 @@ func summaryHandler(w http.ResponseWriter, r *http.Request) {
 		hc.Total = hc.RG + hc.CG + hc.WG + hc.NG
 
 		hc.V4Std = s.counts.DNSCounts[dnsV4Std]
-		hc.V4Non = s.counts.DNSCounts[dnsV4Non]
 		hc.V6Std = s.counts.DNSCounts[dnsV6Std]
-		hc.V6Non = s.counts.DNSCounts[dnsV6Non]
-		hc.DNSTotal = hc.V4Std + hc.V4Non + hc.V6Std + hc.V6Non
+		hc.DNSTotal = hc.V4Std + hc.V6Std
 		s.counts.mtx.RUnlock()
 
 		// we are using basic and simple html here. No fancy graphics or css
@@ -484,9 +446,7 @@ func summaryHandler(w http.ResponseWriter, r *http.Request) {
     DNS Requests<br>
     <table border=1><tr>
 	<td>V4 Std: {{.V4Std}}</td>
-    <td>V4 Non: {{.V4Non}}</td>
     <td>V6 Std: {{.V6Std}}</td>
-    <td>V6 Non: {{.V6Non}}</td>
     <td><a href="/dns?s={{.Name}}">Total: {{.DNSTotal}}</a></td>
     </tr></table>
     </td></tr></table>
@@ -538,7 +498,7 @@ func txtHandler(w http.ResponseWriter, r *http.Request) {
 		lastSuccess := v.lastConnect
 
 		// Alas we don't actually measure this, so fake it.
-		uptime := (100.0 - float32(v.rating)) / 2.0 + 50.0
+		uptime := (100.0-float32(v.rating))/2.0 + 50.0
 
 		blocks := v.lastBlock
 
@@ -613,8 +573,3 @@ func writeFooter(w http.ResponseWriter, r *http.Request, st time.Time) {
 			r.RequestURI)
 	}
 }
-
-/*
-
-
- */

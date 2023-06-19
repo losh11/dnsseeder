@@ -31,9 +31,7 @@ const (
 const (
 	dnsInvalid  = iota //
 	dnsV4Std           // ip v4 using network standard port
-	dnsV4Non           // ip v4 using network non standard port
 	dnsV6Std           // ipv6 using network standard port
-	dnsV6Non           // ipv6 using network non standard port
 	maxDNSTypes        // used in main to allocate slice
 )
 
@@ -367,29 +365,10 @@ func (s *dnsseeder) addNa(nNa *wire.NetAddress) bool {
 		dnsType:     dnsV4Std,
 	}
 
-	// select the dns type based on the remote address type and port
+	// checks to see if ipv4 addr otherwise set ipv6
 	if x := nt.na.IP.To4(); x == nil {
-		// not ipv4
-		if nNa.Port != s.port {
-			nt.dnsType = dnsV6Non
-
-			// produce the nonstdIP
-			nt.nonstdIP = getNonStdIP(nt.na.IP, nt.na.Port)
-
-		} else {
-			nt.dnsType = dnsV6Std
-		}
-	} else {
-		// ipv4
-		if nNa.Port != s.port {
-			nt.dnsType = dnsV4Non
-
-			// force ipv4 address into a 4 byte buffer
-			nt.na.IP = nt.na.IP.To4()
-
-			// produce the nonstdIP
-			nt.nonstdIP = getNonStdIP(nt.na.IP, nt.na.Port)
-		}
+		// ipv6
+		nt.dnsType = dnsV6Std
 	}
 
 	// add the new node details to theList
@@ -398,41 +377,7 @@ func (s *dnsseeder) addNa(nNa *wire.NetAddress) bool {
 	return true
 }
 
-// getNonStdIP is given an IP address and a port and returns a fake IP address
-// that is encoded with the original IP and port number. Remote clients can match
-// the two and work out the real IP and port from the two IP addresses.
-func getNonStdIP(rip net.IP, port uint16) net.IP {
-
-	b := []byte{0x0, 0x0, 0x0, 0x0}
-	crcAddr := crc16(rip.To4())
-	b[0] = byte(crcAddr >> 8)
-	b[1] = byte((crcAddr & 0xff))
-	b[2] = byte(port >> 8)
-	b[3] = byte(port & 0xff)
-
-	encip := net.IPv4(b[0], b[1], b[2], b[3])
-	if config.debug {
-		log.Printf("debug - encode nonstd - realip: %s port: %v encip: %s crc: %x\n", rip.String(), port, encip.String(), crcAddr)
-	}
-
-	return encip
-}
-
-// crc16 produces a crc16 from a byte slice
-func crc16(bs []byte) uint16 {
-	var x, crc uint16
-	crc = 0xffff
-
-	for _, v := range bs {
-		x = crc>>8 ^ uint16(v)
-		x ^= x >> 4
-		crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x
-	}
-	return crc
-}
-
 func (s *dnsseeder) auditNodes() {
-
 	c := 0
 
 	// set this early so for this audit run all NG clients will be purged
