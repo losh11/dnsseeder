@@ -43,26 +43,16 @@ var config configData
 var netfile string
 
 func main() {
-
-	var j bool
-
 	config.version = "0.9.1"
 	config.uptime = time.Now()
 
 	flag.StringVar(&netfile, "netfile", "", "List of json config files to load")
 	flag.StringVar(&config.port, "p", "8053", "DNS Port to listen on")
 	flag.StringVar(&config.http, "w", "", "Web Port to listen on. No port specified & no web server running")
-	flag.BoolVar(&j, "j", false, "Write network template file (dnsseeder.json) and exit")
 	flag.BoolVar(&config.verbose, "v", false, "Display verbose output")
 	flag.BoolVar(&config.debug, "d", false, "Display debug output")
 	flag.BoolVar(&config.stats, "s", false, "Display stats output")
 	flag.Parse()
-
-	if j {
-		createNetFile()
-		fmt.Printf("Template file has been created\n")
-		os.Exit(0)
-	}
 
 	// configure the network options so we can start crawling
 	netwFiles := strings.Split(netfile, ",")
@@ -213,7 +203,3 @@ func updateDNSCounts(name, qtype string) {
 		atomic.AddUint64(&config.dnsUnknown, 1)
 	}
 }
-
-/*
-
- */

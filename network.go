@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 
@@ -21,45 +20,6 @@ type JNetwork struct {
 	TTL        uint32
 	InitialIPs []string
 	Seeders    []string
-}
-
-func createNetFile() {
-	// create a standard json template file that can be loaded into the app
-
-	// create a struct to encode with json
-	jnw := &JNetwork{
-		ID:      "0xabcdef01",
-		Port:    1234,
-		Pver:    70001,
-		TTL:     600,
-		DNSName: "seeder.example.com",
-		Name:    "SeederNet",
-		Desc:    "Description of SeederNet",
-		InitialIPs: []string{
-			"0.0.0.0",
-			"0.0.0.0",
-		},
-		Seeders: []string{
-			"seeder1.example.com",
-			"seed1.bob.com",
-			"seed2.example.com",
-		},
-	}
-
-	f, err := os.Create("dnsseeder.json")
-	if err != nil {
-		log.Printf("error creating template file: %v\n", err)
-	}
-	defer f.Close()
-
-	j, jerr := json.MarshalIndent(jnw, "", " ")
-	if jerr != nil {
-		log.Printf("error parsing json: %v\n", err)
-	}
-	_, ferr := f.Write(j)
-	if ferr != nil {
-		log.Printf("error writing to template file: %v\n", err)
-	}
 }
 
 func loadNetwork(fName string) (*dnsseeder, error) {
