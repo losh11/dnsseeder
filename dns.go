@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/btcsuite/btcd/wire"
 	"github.com/miekg/dns"
 )
 
@@ -10,13 +11,13 @@ import (
 // fast answer
 func updateDNS(s *dnsseeder) {
 
-	var rr4std, rr6std []dns.RR
+	var rr4std, rr6std, rr4x9 []dns.RR
 
 	s.mtx.RLock()
 
-	// loop over each dns recprd type we need
+	// loop over each dns record type we need
 	for t := range []int{dnsV4Std, dnsV6Std} {
-		// FIXME above needs to be convertwd into one scan of theList if possible
+		// FIXME above needs to be converted into one scan of theList if possible
 
 		numRR := 0
 
@@ -49,6 +50,25 @@ func updateDNS(s *dnsseeder) {
 				}
 			}
 
+			// handle service filter bits
+			if nd.services == wire.SFNodeWitness {
+				// ipv4
+				if t == dnsV4Std && nd.dnsType == dnsV4Std {
+					r := new(dns.A)
+					r.Hdr = dns.RR_Header{Name: "x9." + s.dnsHost + ".", Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: s.ttl}
+					r.A = nd.na.IP
+					rr4std = append(rr4std, r)
+					numRR++
+				}
+				// ipv6
+				if t == dnsV6Std && nd.dnsType == dnsV6Std {
+					r := new(dns.AAAA)
+					r.Hdr = dns.RR_Header{Name: "x9." + s.dnsHost + ".", Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: s.ttl}
+					r.AAAA = nd.na.IP
+					rr6std = append(rr6std, r)
+					numRR++
+				}
+			}
 		}
 
 	}
@@ -58,12 +78,14 @@ func updateDNS(s *dnsseeder) {
 	config.dnsmtx.Lock()
 
 	// update the map holding the details for this seeder
-	for t := range []int{dnsV4Std, dnsV6Std} {
+	for t := range []int{dnsV4Std, dnsV6Std, x9} {
 		switch t {
 		case dnsV4Std:
 			config.dns[s.dnsHost+".A"] = rr4std
 		case dnsV6Std:
 			config.dns[s.dnsHost+".AAAA"] = rr6std
+		case x9:
+			config.dns["x9."+s.dnsHost+".A"] = rr4x9
 		}
 	}
 
@@ -71,7 +93,7 @@ func updateDNS(s *dnsseeder) {
 
 	if config.stats {
 		s.counts.mtx.RLock()
-		log.Printf("%s - DNS available: ipv4: %v ipv6: %v\n", s.name, len(rr4std), len(rr6std))
+		log.Printf("%s - DNS available: ipv4: %v ipv6: %v x9: %v\n", s.name, len(rr4std), len(rr6std), len(rr4x9))
 		log.Printf("%s - DNS counts: ipv4: %v ipv6: %v total: %v\n",
 			s.name,
 			s.counts.DNSCounts[dnsV4Std],

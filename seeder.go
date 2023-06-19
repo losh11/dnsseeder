@@ -33,6 +33,9 @@ const (
 	dnsV4Std           // ip v4 using network standard port
 	dnsV6Std           // ipv6 using network standard port
 	maxDNSTypes        // used in main to allocate slice
+	x1                 // NODE_NETWORK
+	x5                 // NODE_NETWORK || NODE_BLOOM
+	x9                 // NODE_NETWORK || NODE_WITNESS
 )
 
 const (
