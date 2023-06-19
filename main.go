@@ -1,6 +1,3 @@
-/*
-
- */
 package main
 
 import (
@@ -34,7 +31,6 @@ type configData struct {
 	http       string                // port for the web server to listen on
 	version    string                // application version
 	seeders    map[string]*dnsseeder // holds a pointer to all the current seeders
-	smtx       sync.RWMutex          // protect the seeders map
 	order      []string              // the order of loading the netfiles so we can display in this order
 	dns        map[string][]dns.RR   // holds details of all the currently served dns records
 	dnsmtx     sync.RWMutex          // protect the dns map
@@ -62,7 +58,7 @@ func main() {
 	flag.BoolVar(&config.stats, "s", false, "Display stats output")
 	flag.Parse()
 
-	if j == true {
+	if j {
 		createNetFile()
 		fmt.Printf("Template file has been created\n")
 		os.Exit(0)
@@ -91,11 +87,11 @@ func main() {
 		}
 	}
 
-	if config.debug == true {
+	if config.debug {
 		config.verbose = true
 		config.stats = true
 	}
-	if config.verbose == true {
+	if config.verbose {
 		config.stats = true
 	}
 
@@ -103,7 +99,7 @@ func main() {
 		log.Printf("status - system is configured for network: %s\n", v.name)
 	}
 
-	if config.verbose == false {
+	if !config.verbose {
 		log.Printf("status - Running in quiet mode with limited output produced\n")
 	}
 
@@ -213,7 +209,7 @@ func updateDNSCounts(name, qtype string) {
 		}
 		s.counts.mtx.Unlock()
 	}
-	if counted != true {
+	if !counted {
 		atomic.AddUint64(&config.dnsUnknown, 1)
 	}
 }

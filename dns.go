@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	//	"sync"
 
 	"github.com/miekg/dns"
 )
@@ -165,7 +164,3 @@ func serve(net, port string) {
 		log.Printf("Failed to setup the "+net+" server: %v\n", err)
 	}
 }
-
-/*
-
- */

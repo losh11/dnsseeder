@@ -1,0 +1,19 @@
+{
+    "Name": "LitecoinNet-Test",
+    "Desc": "Litecoin Testnet v4",
+    "Id": "0xf1c8d2fd",
+    "Port": 19335,
+    "Pver": 70001,
+    "DNSName": "seed-b.litecoin.loshan.co.uk",
+    "TTL": 300,
+    "InitialIPs": [
+        "192.168.1.12:19335",
+        "18.216.6.240:19335",
+        "23.88.68.160:19335"
+    ],
+    "Seeders": [
+        "seed-b.litecoin.loshan.co.uk",
+        "testnet-seed.litecointools.com",
+        "dnsseed-testnet.thrasher.io"
+    ]
+}

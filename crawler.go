@@ -129,7 +129,7 @@ func crawlIP(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
 	c := 0
 	dowhile := true
 	peers := []*wire.NetAddress{}
-	for dowhile == true {
+	for dowhile {
 
 		// Using the Bitcoin lib for the some networks means it does not understand some
 		// of the commands and will error. We can ignore these as we are only
@@ -170,7 +170,3 @@ func crawlIP(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
 	// received too many messages before requested Addr
 	return nil, &crawlError{"message loop - did not receive remote addresses in first 25 messages from remote client", errors.New("")}
 }
-
-/*
-
- */

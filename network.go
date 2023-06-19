@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/btcsuite/btcd/wire"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/btcsuite/btcd/wire"
 )
 
 // JNetwork is the exported struct that is read from the network file
@@ -27,18 +28,18 @@ func createNetFile() {
 
 	// create a struct to encode with json
 	jnw := &JNetwork{
-		ID:         "0xabcdef01",
-		Port:       1234,
-		Pver:       70001,
-		TTL:        600,
-		DNSName:    "seeder.example.com",
-		Name:       "SeederNet",
-		Desc:       "Description of SeederNet",
+		ID:      "0xabcdef01",
+		Port:    1234,
+		Pver:    70001,
+		TTL:     600,
+		DNSName: "seeder.example.com",
+		Name:    "SeederNet",
+		Desc:    "Description of SeederNet",
 		InitialIPs: []string{
 			"0.0.0.0",
 			"0.0.0.0",
 		},
-		Seeders:    []string{
+		Seeders: []string{
 			"seeder1.example.com",
 			"seed1.bob.com",
 			"seed2.example.com",
@@ -64,7 +65,7 @@ func createNetFile() {
 func loadNetwork(fName string) (*dnsseeder, error) {
 	nwFile, err := os.Open(fName)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading network file: %v", err)
+		return nil, fmt.Errorf("error reading network file: %v", err)
 	}
 
 	defer nwFile.Close()
@@ -73,7 +74,7 @@ func loadNetwork(fName string) (*dnsseeder, error) {
 
 	jsonParser := json.NewDecoder(nwFile)
 	if err = jsonParser.Decode(&jnw); err != nil {
-		return nil, fmt.Errorf("Error decoding network file: %v", err)
+		return nil, fmt.Errorf("error decoding network file: %v", err)
 	}
 
 	return initNetwork(jnw)
@@ -82,12 +83,12 @@ func loadNetwork(fName string) (*dnsseeder, error) {
 func initNetwork(jnw JNetwork) (*dnsseeder, error) {
 
 	if jnw.Port == 0 {
-		return nil, fmt.Errorf("Invalid port supplied: %v", jnw.Port)
+		return nil, fmt.Errorf("invalid port supplied: %v", jnw.Port)
 
 	}
 
 	if jnw.DNSName == "" {
-		return nil, fmt.Errorf("No DNS Hostname supplied")
+		return nil, fmt.Errorf("no dns hostname supplied")
 	}
 
 	// init the seeder
@@ -127,13 +128,9 @@ func initNetwork(jnw JNetwork) (*dnsseeder, error) {
 		seeder.ttl = 60
 	}
 
-	if dup, err := isDuplicateSeeder(seeder); dup == true {
+	if dup, err := isDuplicateSeeder(seeder); dup {
 		return nil, err
 	}
 
 	return seeder, nil
 }
-
-/*
-
- */

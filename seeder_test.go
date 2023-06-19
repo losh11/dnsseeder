@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/btcsuite/btcd/wire"
 	"net"
 	"strconv"
 	"testing"
+
+	"github.com/btcsuite/btcd/wire"
 )
 
 func TestGetNonStdIP(t *testing.T) {
@@ -52,7 +53,7 @@ func TestAddnNa(t *testing.T) {
 			IP:   net.ParseIP(atest.ip),
 			Port: atest.port,
 		}
-		na, _ := wire.NewNetAddress(tcpAddr, 0)
+		na := wire.NewNetAddress(tcpAddr, 0)
 		ndName := net.JoinHostPort(na.IP.String(), strconv.Itoa(int(na.Port)))
 
 		result := s.addNa(na)
@@ -68,7 +69,7 @@ func TestAddnNa(t *testing.T) {
 		IP:   net.ParseIP("127.0.0.1"),
 		Port: 1234,
 	}
-	na, _ := wire.NewNetAddress(tcpAddr, 0)
+	na := wire.NewNetAddress(tcpAddr, 0)
 	result := s.addNa(na)
 
 	if result != false {
@@ -79,7 +80,7 @@ func TestAddnNa(t *testing.T) {
 		IP:   net.ParseIP("1.2.3.4"),
 		Port: 28333,
 	}
-	na, _ = wire.NewNetAddress(tcpAddr, 0)
+	na = wire.NewNetAddress(tcpAddr, 0)
 	result = s.addNa(na)
 
 	if result != false {

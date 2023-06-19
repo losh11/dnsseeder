@@ -95,7 +95,7 @@ func (s *dnsseeder) initSeeder() {
 		for _, ip := range newRRs {
 			if newIP := net.ParseIP(ip); newIP != nil {
 				// 1 at the end is the services flag
-				if x := s.addNa(wire.NewNetAddressIPPort(newIP, s.port, 1)); x == true {
+				if x := s.addNa(wire.NewNetAddressIPPort(newIP, s.port, 1)); x {
 					c++
 				}
 			}
@@ -110,7 +110,7 @@ func (s *dnsseeder) initSeeder() {
 		for _, initialIP := range s.initialIPs {
 			if newIP := net.ParseIP(initialIP); newIP != nil {
 				// 1 at the end is the services flag
-				if x := s.addNa(wire.NewNetAddressIPPort(newIP, s.port, 1)); x == true {
+				if x := s.addNa(wire.NewNetAddressIPPort(newIP, s.port, 1)); x {
 					log.Printf("%s: crawling with initial IP %s \n", s.name, initialIP)
 				}
 			}
@@ -148,7 +148,7 @@ func (s *dnsseeder) runSeeder(done <-chan struct{}, wg *sync.WaitGroup) {
 	dnsChan := time.NewTicker(time.Second * dnsDelay).C
 
 	dowhile := true
-	for dowhile == true {
+	for dowhile {
 		select {
 		case r := <-resultsChan:
 			// process a results structure from a crawl
@@ -195,7 +195,7 @@ func (s *dnsseeder) startCrawlers(resultsChan chan *result) {
 
 		totals[nd.status]++
 
-		if nd.crawlActive == true {
+		if nd.crawlActive {
 			continue
 		}
 
@@ -308,7 +308,7 @@ func (s *dnsseeder) processResult(r *result) {
 		// loop through all the received network addresses and add to thelist if not present
 		for _, na := range r.nas {
 			// a new network address so add to the system
-			if x := s.addNa(na); x == true {
+			if x := s.addNa(na); x {
 				if added++; added > oneThird {
 					break
 				}
@@ -346,7 +346,7 @@ func (s *dnsseeder) addNa(nNa *wire.NetAddress) bool {
 	// generate the key and add to theList
 	k := net.JoinHostPort(nNa.IP.String(), strconv.Itoa(int(nNa.Port)))
 
-	if _, dup := s.theList[k]; dup == true {
+	if _, dup := s.theList[k]; dup {
 		return false
 	}
 	if nNa.Port <= minPort || nNa.Port >= maxPort {
@@ -451,7 +451,7 @@ func (s *dnsseeder) auditNodes() {
 
 	for k, nd := range s.theList {
 
-		if nd.crawlActive == true {
+		if nd.crawlActive {
 			if time.Now().Unix()-nd.crawlStart.Unix() >= 300 {
 				log.Printf("warning - long running crawl > 5 minutes ====\n- %s status:rating:fails %v:%v:%v crawl start: %s last status: %s\n====\n",
 					k,
@@ -532,10 +532,10 @@ func isDuplicateSeeder(s *dnsseeder) (bool, error) {
 	// check for duplicate seeders with the same details
 	for _, v := range config.seeders {
 		if v.id == s.id {
-			return true, fmt.Errorf("Duplicate Magic id. Already loaded for %s so can not be used for %s", v.id, v.name, s.name)
+			return true, fmt.Errorf("duplicate Magic id. Already loaded for %s so can not be used for %s\n%s", v.id, v.name, s.name)
 		}
 		if v.dnsHost == s.dnsHost {
-			return true, fmt.Errorf("Duplicate DNS names. Already loaded %s for %s so can not be used for %s", v.dnsHost, v.name, s.name)
+			return true, fmt.Errorf("duplicate DNS names. Already loaded %s for %s so can not be used for %s", v.dnsHost, v.name, s.name)
 		}
 	}
 	return false, nil
