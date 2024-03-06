@@ -1,0 +1,18 @@
+{
+    "Name": "LitecoinNet",
+    "Desc": "Litecoin Mainnet",
+    "Id": "0xdbb6c0fb",
+    "Port": 9333,
+    "Pver": 70001,
+    "DNSName": "seed-a.litecoin.loshan.co.uk",
+    "TTL": 300,
+    "InitialIPs": [
+        "127.0.0.1:9335"
+    ],
+    "Seeders": [
+        "seed-a.litecoin.loshan.co.uk",
+        "dnsseed.thrasher.io",
+        "dnsseed.litecointools.com",
+        "dnsseed.litecoinpool.org"
+    ]
+}
