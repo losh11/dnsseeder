@@ -69,7 +69,7 @@ type result struct {
 	msg        *crawlError        // error string or nil if no problems
 	node       string             // theList key to the node that was crawled
 	version    int32              // remote node protocol version
-	services   wire.ServiceFlag   // remote client supported services
+	services   serviceFlag        // remote client supported services
 	lastBlock  int32              // last block seen by the node
 	strVersion string             // remote client user agent
 }
