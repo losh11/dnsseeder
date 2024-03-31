@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/ltcsuite/ltcd/wire"
 )
 
 // Node struct contains details on one client

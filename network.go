@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/ltcsuite/ltcd/wire"
 )
 
 // JNetwork is the exported struct that is read from the network file

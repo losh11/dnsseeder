@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/ltcsuite/ltcd/wire"
 	"github.com/miekg/dns"
 )
 

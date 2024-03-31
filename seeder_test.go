@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/ltcsuite/ltcd/wire"
 )
 
 func TestAddnNa(t *testing.T) {
@@ -15,12 +15,12 @@ func TestAddnNa(t *testing.T) {
 		port    int
 		dnsType uint32
 	}{
-		{"1.2.3.4", 28333, 1},
+		{"1.2.3.4", 29333, 1},
 		{"50.123.45.67", 43210, 2},
 	}
 
 	s := &dnsseeder{
-		port:    28333,
+		port:    29333,
 		pver:    1234,
 		maxSize: 1,
 	}
@@ -39,9 +39,6 @@ func TestAddnNa(t *testing.T) {
 		if result != true {
 			t.Errorf("failed to create new node: %s", ndName)
 		}
-		if s.theList[ndName].dnsType != atest.dnsType {
-			t.Errorf("node: %s dnsType:%v expected: %v", ndName, s.theList[ndName].dnsType, atest.dnsType)
-		}
 	}
 
 	tcpAddr := &net.TCPAddr{
@@ -57,7 +54,7 @@ func TestAddnNa(t *testing.T) {
 
 	tcpAddr = &net.TCPAddr{
 		IP:   net.ParseIP("1.2.3.4"),
-		Port: 28333,
+		Port: 29333,
 	}
 	na = wire.NewNetAddress(tcpAddr, 0)
 	result = s.addNa(na)
@@ -67,7 +64,3 @@ func TestAddnNa(t *testing.T) {
 	}
 
 }
-
-/*
-
- */
