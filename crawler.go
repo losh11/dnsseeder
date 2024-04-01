@@ -46,7 +46,6 @@ func crawlIP(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
 	verack := make(chan struct{})
 	onAddr := make(chan *wire.MsgAddr)
 	peerCfg := &peer.Config{
-		ChainParams:   &chaincfg.MainNetParams,
 		UserAgentName: "ltcseeder",
 		Services:      0,
 		Listeners: peer.MessageListeners{
@@ -68,6 +67,12 @@ func crawlIP(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
 				onAddr <- msg
 			},
 		},
+	}
+
+	if s.port == 9333 {
+		peerCfg.ChainParams = &chaincfg.MainNetParams
+	} else {
+		peerCfg.ChainParams = &chaincfg.TestNet4Params
 	}
 
 	// Create and start the outbound peer
