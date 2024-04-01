@@ -5,9 +5,9 @@
     "Port": 9333,
     "Pver": 70001,
     "DNSName": "seed-a.litecoin.loshan.co.uk",
-    "TTL": 300,
+    "TTL": 60,
     "InitialIPs": [
-        "127.0.0.1:9335"
+        "127.0.0.1:9333"
     ],
     "Seeders": [
         "seed-a.litecoin.loshan.co.uk",
