@@ -82,7 +82,20 @@ func crawlIP(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
 	}
 
 	// Establish the connection to the peer address and mark it connected.
-	conn, err := net.Dial("tcp", p.Addr())
+	// Use appropriate network type for IPv4/IPv6 based on the peer address
+	network := "tcp"
+	peerHost, _, err := net.SplitHostPort(p.Addr())
+	if err == nil {
+		if net.ParseIP(peerHost).To4() == nil {
+			// IPv6 address
+			network = "tcp6"
+		} else {
+			// IPv4 address  
+			network = "tcp4"
+		}
+	}
+	
+	conn, err := net.Dial(network, p.Addr())
 	if err != nil {
 		return nil, &crawlError{"net.Dial: error", err}
 	}

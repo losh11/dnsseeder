@@ -11,12 +11,12 @@ import (
 // fast answer
 func updateDNS(s *dnsseeder) {
 
-	var rr4std, rr6std, rr4x9 []dns.RR
+	var rr4std, rr6std, rr4x9, rr6x9 []dns.RR
 
 	s.mtx.RLock()
 
 	// loop over each dns record type we need
-	for t := range []int{dnsV4Std, dnsV6Std} {
+	for _, t := range []int{dnsV4Std, dnsV6Std} {
 		// FIXME above needs to be converted into one scan of theList if possible
 
 		numRR := 0
@@ -57,7 +57,7 @@ func updateDNS(s *dnsseeder) {
 					r := new(dns.A)
 					r.Hdr = dns.RR_Header{Name: "x9." + s.dnsHost + ".", Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: s.ttl}
 					r.A = nd.na.IP
-					rr4std = append(rr4std, r)
+					rr4x9 = append(rr4x9, r)
 					numRR++
 				}
 				// ipv6
@@ -65,7 +65,7 @@ func updateDNS(s *dnsseeder) {
 					r := new(dns.AAAA)
 					r.Hdr = dns.RR_Header{Name: "x9." + s.dnsHost + ".", Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: s.ttl}
 					r.AAAA = nd.na.IP
-					rr6std = append(rr6std, r)
+					rr6x9 = append(rr6x9, r)
 					numRR++
 				}
 			}
@@ -86,6 +86,7 @@ func updateDNS(s *dnsseeder) {
 			config.dns[s.dnsHost+".AAAA"] = rr6std
 		case x9:
 			config.dns["x9."+s.dnsHost+".A"] = rr4x9
+			config.dns["x9."+s.dnsHost+".AAAA"] = rr6x9
 		}
 	}
 
@@ -93,7 +94,7 @@ func updateDNS(s *dnsseeder) {
 
 	if config.stats {
 		s.counts.mtx.RLock()
-		log.Printf("%s - DNS available: ipv4: %v ipv6: %v x9: %v\n", s.name, len(rr4std), len(rr6std), len(rr4x9))
+		log.Printf("%s - DNS available: ipv4: %v ipv6: %v x9ipv4: %v x9ipv6: %v\n", s.name, len(rr4std), len(rr6std), len(rr4x9), len(rr6x9))
 		log.Printf("%s - DNS counts: ipv4: %v ipv6: %v total: %v\n",
 			s.name,
 			s.counts.DNSCounts[dnsV4Std],
