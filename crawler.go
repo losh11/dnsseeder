@@ -1,7 +1,8 @@
 package main
 
 import (
-	"errors"
+	"context"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -12,120 +13,213 @@ import (
 	"github.com/ltcsuite/ltcd/wire"
 )
 
+const (
+	dialTimeout       = 10 * time.Second
+	peerAddrTimeout   = 6 * time.Second
+	verAckTimeout     = 3 * time.Second
+	manualMsgLimit    = 20
+	manualConnTimeout = 10 * time.Second
+	maxAddrMessages   = 50
+)
+
 type crawlError struct {
-	errLoc string
-	Err    error
+	loc string
+	err error
 }
 
-// Error returns a formatted error about a crawl
 func (e *crawlError) Error() string {
-	return "err: " + e.errLoc + ": " + e.Err.Error()
+	return fmt.Sprintf("crawl error at %s: %v", e.loc, e.err)
 }
 
-// crawlNode runs in a goroutine, crawls the remote ip and updates the master
-// list of currently active addresses
-func crawlNode(rc chan *result, s *dnsseeder, nd *node) {
+func crawlNode(rc chan<- *result, s *dnsseeder, nd *node) {
+	addr := net.JoinHostPort(nd.na.IP.String(), strconv.Itoa(int(nd.na.Port)))
+	res := &result{node: addr}
 
-	res := &result{
-		node: net.JoinHostPort(nd.na.IP.String(), strconv.Itoa(int(nd.na.Port))),
+	peers, cerr := crawlIP(s, res)
+	if cerr != nil {
+		res.msg = cerr
 	}
-
-	// connect to the remote ip and ask them for their addr list
-	res.nas, res.msg = crawlIP(s, res)
-
-	// all done so push the result back to the seeder.
-	//This will block until the seeder reads the result
+	res.nas = peers
 	rc <- res
-
-	// goroutine will end and be cleaned up
 }
 
-// crawlIP retrievs a slice of ip addresses from a client
+// crawlIP attempts to fetch addresses via ltcd Peer handshake, falling back to manual wire protocol.
 func crawlIP(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
-	// use ltcd to attempt connection to Peer
-	verack := make(chan struct{})
-	onAddr := make(chan *wire.MsgAddr)
-	peerCfg := &peer.Config{
+	if peers, ok := fetchViaPeer(s, r); ok {
+		return peers, nil
+	}
+	return nil, nil
+	return fetchViaManual(s, r)
+}
+
+// fetchViaPeer tries the newer ltcd Peer abstraction.
+func fetchViaPeer(s *dnsseeder, r *result) ([]*wire.NetAddress, bool) {
+	verack := make(chan struct{}, 1)
+	addrCh := make(chan []*wire.NetAddress, 1)
+
+	cfg := &peer.Config{
 		UserAgentName: "ltcseeder",
 		Services:      0,
 		Listeners: peer.MessageListeners{
 			OnVersion: func(p *peer.Peer, msg *wire.MsgVersion) *wire.MsgReject {
-				if config.debug {
-					log.Printf("%s - debug - %s - Remote version: %v\n", s.name, r.node, msg.ProtocolVersion)
-				}
-				// fill the node struct with the remote details
-				r.version = msg.ProtocolVersion
-				r.services = msg.Services
-				r.lastBlock = msg.LastBlock
-				r.strVersion = msg.UserAgent
+				debugLog(s.name, "version", r.node, fmt.Errorf("protocol %d", msg.ProtocolVersion))
+				r.version, r.services, r.lastBlock, r.strVersion =
+					msg.ProtocolVersion, msg.Services, msg.LastBlock, msg.UserAgent
 				return nil
 			},
 			OnVerAck: func(p *peer.Peer, msg *wire.MsgVerAck) {
 				verack <- struct{}{}
 			},
 			OnAddr: func(p *peer.Peer, msg *wire.MsgAddr) {
-				onAddr <- msg
+				select {
+				case addrCh <- msg.AddrList:
+				default:
+				}
 			},
 		},
 	}
-
 	if s.port == 9333 {
-		peerCfg.ChainParams = &chaincfg.MainNetParams
+		cfg.ChainParams = &chaincfg.MainNetParams
 	} else {
-		peerCfg.ChainParams = &chaincfg.TestNet4Params
+		cfg.ChainParams = &chaincfg.TestNet4Params
 	}
 
-	// Create and start the outbound peer
-	p, err := peer.NewOutboundPeer(peerCfg, r.node)
+	p, err := peer.NewOutboundPeer(cfg, r.node)
 	if err != nil {
-		return nil, &crawlError{"NewOutboundPeer: error", err}
+		return nil, false
 	}
-
-	// Establish the connection to the peer address and mark it connected.
-	// Use appropriate network type for IPv4/IPv6 based on the peer address
-	network := "tcp"
-	peerHost, _, err := net.SplitHostPort(p.Addr())
-	if err == nil {
-		if net.ParseIP(peerHost).To4() == nil {
-			// IPv6 address
-			network = "tcp6"
-		} else {
-			// IPv4 address  
-			network = "tcp4"
-		}
-	}
-	
-	conn, err := net.Dial(network, p.Addr())
-	if err != nil {
-		return nil, &crawlError{"net.Dial: error", err}
-	}
-	p.AssociateConnection(conn)
-
 	defer p.WaitForDisconnect()
 	defer p.Disconnect()
 
-	// check verack
+	network := dialNetwork(p.Addr())
+	conn, err := net.Dial(network, p.Addr())
+	if err != nil {
+		return nil, false
+	}
+	p.AssociateConnection(conn)
+
 	select {
 	case <-verack:
-	case <-time.After(time.Second * 3):
-		return nil, &crawlError{"verack timeout", errors.New("")}
+	case <-time.After(verAckTimeout):
+		return nil, false
 	}
-
-	// if we get this far and if the seeder is full then don't ask for addresses. This will reduce bandwith usage while still
-	// confirming that we can connect to the remote node
-	s.mtx.RLock()
-	if len(s.theList) > s.maxSize {
-		return nil, nil
-	}
-	s.mtx.RUnlock()
 
 	p.QueueMessage(wire.NewMsgGetAddr(), nil)
 
-	addrMsg := new(wire.MsgAddr)
 	select {
-	case addrMsg = <-onAddr:
-	case <-time.After(time.Second * 6):
+	case addrs := <-addrCh:
+		debugLog(s.name, "addr", r.node, fmt.Errorf("%d peers", len(addrs)))
+		if len(addrs) > 0 {
+			return addrs, true
+		}
+	case <-time.After(peerAddrTimeout):
+		debugLog(s.name, "addr timeout", r.node, nil)
+	}
+	return nil, false
+}
+
+// fetchViaManual falls back to raw wire protocol for legacy nodes.
+func fetchViaManual(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
+	ctx, cancel := context.WithTimeout(context.Background(), manualConnTimeout)
+	defer cancel()
+	d := &net.Dialer{}
+	conn, err := d.DialContext(ctx, "tcp", r.node)
+	if err != nil {
+		debugLog(s.name, "manual dial", r.node, err)
+		return nil, &crawlError{"manual dial", err}
+	}
+	defer conn.Close()
+
+	if err := conn.SetDeadline(time.Now().Add(ioDeadline())); err != nil {
+		return nil, &crawlError{"set deadline", err}
 	}
 
-	return addrMsg.AddrList, nil
+	me := wire.NewNetAddress(conn.LocalAddr().(*net.TCPAddr), wire.SFNodeNetwork)
+	you := wire.NewNetAddress(conn.RemoteAddr().(*net.TCPAddr), wire.SFNodeNetwork)
+
+	// handshake
+	if err := wire.WriteMessage(conn, wire.NewMsgVersion(me, you, nounce, 0), s.pver, s.id); err != nil {
+		return nil, &crawlError{"write version", err}
+	}
+	msg, _, err := wire.ReadMessage(conn, s.pver, s.id)
+	if err != nil {
+		return nil, &crawlError{"read version", err}
+	}
+	if _, ok := msg.(*wire.MsgVersion); !ok {
+		return nil, &crawlError{"version type", fmt.Errorf("%T", msg)}
+	}
+
+	if err := wire.WriteMessage(conn, wire.NewMsgVerAck(), s.pver, s.id); err != nil {
+		return nil, &crawlError{"write verack", err}
+	}
+
+	if err := waitForVerAck(conn, s, r); err != nil {
+		return nil, err
+	}
+
+	if err := wire.WriteMessage(conn, wire.NewMsgGetAddr(), s.pver, s.id); err != nil {
+		return nil, &crawlError{"write getaddr", err}
+	}
+
+	peers := collectAddrs(conn, s, r)
+	if len(peers) > 0 {
+		return peers, nil
+	}
+	return nil, &crawlError{"no addrs", fmt.Errorf("no peers after manual fetch")}
+}
+
+func waitForVerAck(conn net.Conn, s *dnsseeder, r *result) *crawlError {
+	for i := 0; i < manualMsgLimit; i++ {
+		msg, _, err := wire.ReadMessage(conn, s.pver, s.id)
+		if err != nil {
+			continue
+		}
+		if _, ok := msg.(*wire.MsgVerAck); ok {
+			return nil
+		}
+	}
+	return &crawlError{"verack wait", fmt.Errorf("verack not received in %d msgs", manualMsgLimit)}
+}
+
+func collectAddrs(conn net.Conn, s *dnsseeder, r *result) []*wire.NetAddress {
+	var peers []*wire.NetAddress
+	for i := 0; i < maxAddrMessages; i++ {
+		msg, _, err := wire.ReadMessage(conn, s.pver, s.id)
+		if err != nil {
+			continue
+		}
+		if addrMsg, ok := msg.(*wire.MsgAddr); ok {
+			debugLog(s.name, "addr", r.node, fmt.Errorf("%d peers", len(addrMsg.AddrList)))
+			peers = append(peers, addrMsg.AddrList...)
+			if len(peers) > 1 {
+				break
+			}
+		}
+	}
+	return peers
+}
+
+func dialNetwork(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "tcp"
+	}
+	if net.ParseIP(host).To4() == nil {
+		return "tcp6"
+	}
+	return "tcp4"
+}
+
+func ioDeadline() time.Duration {
+	return time.Second * maxTo
+}
+
+func debugLog(nodeName, phase, addr string, info error) {
+	if config.debug {
+		if info != nil {
+			log.Printf("%s - debug - %s - %s: %v\n", nodeName, phase, addr, info)
+		} else {
+			log.Printf("%s - debug - %s - %s\n", nodeName, phase, addr)
+		}
+	}
 }

@@ -1,18 +1,27 @@
 {
-    "Name": "LitecoinNet",
-    "Desc": "Litecoin Mainnet",
-    "Id": "0xdbb6c0fb",
-    "Port": 9333,
-    "Pver": 70001,
-    "DNSName": "seed-a.litecoin.loshan.co.uk",
-    "TTL": 60,
-    "InitialIPs": [
-        "127.0.0.1:9333"
-    ],
-    "Seeders": [
-        "seed-a.litecoin.loshan.co.uk",
-        "dnsseed.thrasher.io",
-        "dnsseed.litecointools.com",
-        "dnsseed.litecoinpool.org"
-    ]
+  "Name": "LitecoinNet",
+  "Desc": "Litecoin Mainnet",
+  "Id": "0xdbb6c0fb",
+  "Port": 9333,
+  "Pver": 70001,
+  "DNSName": "seed-a.litecoin.loshan.co.uk",
+  "TTL": 60,
+  "InitialIPs": [
+    "18.204.86.135:9333",
+    "89.19.26.211:9333",
+    "18.141.5.161:9333",
+    "132.145.129.176:9333",
+    "93.189.27.164:9333",
+    "80.85.141.43:9333",
+    "148.113.215.58:9333",
+    "192.99.34.91:9333",
+    "77.81.121.220:9333",
+    "95.211.210.38:9333"
+  ],
+  "Seeders": [
+    "seed-a.litecoin.loshan.co.uk",
+    "dnsseed.thrasher.io",
+    "dnsseed.litecointools.com",
+    "dnsseed.litecoinpool.org"
+  ]
 }
