@@ -33,9 +33,20 @@ const (
 	dnsV4Std           // ip v4 using network standard port
 	dnsV6Std           // ipv6 using network standard port
 	maxDNSTypes        // used in main to allocate slice
-	x1                 // NODE_NETWORK
-	x5                 // NODE_NETWORK || NODE_BLOOM
-	x9                 // NODE_NETWORK || NODE_WITNESS
+	x1                 // NODE_NETWORK (1 << 0)
+	x2                 // NODE_GETUTXO (1 << 1)
+	x4                 // NODE_BLOOM (1 << 2)
+	x5                 // NODE_NETWORK | NODE_BLOOM (0x1 | 0x4)
+	x8                 // NODE_WITNESS (1 << 3)
+	x9                 // NODE_NETWORK | NODE_WITNESS (0x1 | 0x8)
+	x40                // NODE_COMPACT_FILTERS (1 << 6)
+	x41                // NODE_NETWORK | NODE_COMPACT_FILTERS (0x1 | 0x40)
+	x48                // NODE_WITNESS | NODE_COMPACT_FILTERS (0x8 | 0x40)
+	x49                // NODE_NETWORK | NODE_WITNESS | NODE_COMPACT_FILTERS (0x1 | 0x8 | 0x40)
+	x400               // NODE_NETWORK_LIMITED (1 << 10)
+	x1000000           // NODE_MWEB (1 << 24)
+	x1800000           // NODE_MWEB | NODE_MWEB_LIGHT_CLIENT (0x1000000 | 0x800000)
+	x1800049           // NODE_MWEB | NODE_MWEB_LIGHT_CLIENT | NODE_NETWORK | NODE_WITNESS | NODE_COMPACT_FILTERS
 )
 
 const (
