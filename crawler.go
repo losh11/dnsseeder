@@ -48,7 +48,6 @@ func crawlIP(s *dnsseeder, r *result) ([]*wire.NetAddress, *crawlError) {
 	if peers, ok := fetchViaPeer(s, r); ok {
 		return peers, nil
 	}
-	return nil, nil
 	return fetchViaManual(s, r)
 }
 
